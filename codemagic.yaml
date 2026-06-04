@@ -1,0 +1,38 @@
+workflows:
+  ios-testflight:
+    name: iOS TestFlight Check
+    instance_type: mac_mini_m2
+    max_build_duration: 60
+    integrations:
+      # Codemagic UI: Teams/App settings -> Integrations -> App Store Connect.
+      # Create an API key integration and put its NAME below (replace "ASC_KEY").
+      app_store_connect: ASC_KEY
+    environment:
+      ios_signing:
+        distribution_type: app_store
+        bundle_identifier: com.astrony.test
+      flutter: stable
+      xcode: latest
+      cocoapods: default
+    scripts:
+      - name: Flutter packages
+        script: flutter pub get
+      - name: Pod install (if a Podfile exists)
+        script: |
+          find . -name "Podfile" -execdir pod install \; || true
+      - name: Apply signing profiles to Xcode project
+        script: xcode-project use-profiles
+      - name: Build IPA
+        script: |
+          flutter build ipa --release \
+            --build-name=1.0.0 \
+            --build-number=$(($(date +%s) / 60)) \
+            --export-options-plist=/Users/builder/export_options.plist
+    artifacts:
+      - build/ios/ipa/*.ipa
+      - /tmp/xcodebuild_logs/*.log
+      - flutter_drive.log
+    publishing:
+      app_store_connect:
+        auth: integration
+        submit_to_testflight: true
