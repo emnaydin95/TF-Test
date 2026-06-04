@@ -12,15 +12,16 @@ workflows:
       vars:
         BUNDLE_ID: "com.astrony.test"
     scripts:
-      - name: Set up keychain
-        script: keychain initialize
-      - name: Fetch signing files (create if missing)
+      - name: Set up keychain and signing files
         script: |
+          keychain initialize
+          # Taze bir private key uret ki Codemagic dagitim sertifikasini olusturabilsin
+          openssl genrsa -out /tmp/cert_key.pem 2048
           app-store-connect fetch-signing-files "$BUNDLE_ID" \
             --type IOS_APP_STORE \
+            --certificate-key=@file:/tmp/cert_key.pem \
             --create
-      - name: Add certificates to keychain
-        script: keychain add-certificates
+          keychain add-certificates
       - name: Flutter packages
         script: flutter pub get
       - name: Pod install (if a Podfile exists)
