@@ -4,17 +4,23 @@ workflows:
     instance_type: mac_mini_m2
     max_build_duration: 60
     integrations:
-      # Codemagic UI: Teams/App settings -> Integrations -> App Store Connect.
-      # Create an API key integration and put its NAME below (replace "ASC_KEY").
       app_store_connect: ASC_KEY
     environment:
-      ios_signing:
-        distribution_type: app_store
-        bundle_identifier: com.astrony.test
       flutter: stable
       xcode: latest
       cocoapods: default
+      vars:
+        BUNDLE_ID: "com.astrony.test"
     scripts:
+      - name: Set up keychain
+        script: keychain initialize
+      - name: Fetch signing files (create if missing)
+        script: |
+          app-store-connect fetch-signing-files "$BUNDLE_ID" \
+            --type IOS_APP_STORE \
+            --create
+      - name: Add certificates to keychain
+        script: keychain add-certificates
       - name: Flutter packages
         script: flutter pub get
       - name: Pod install (if a Podfile exists)
@@ -31,7 +37,6 @@ workflows:
     artifacts:
       - build/ios/ipa/*.ipa
       - /tmp/xcodebuild_logs/*.log
-      - flutter_drive.log
     publishing:
       app_store_connect:
         auth: integration
